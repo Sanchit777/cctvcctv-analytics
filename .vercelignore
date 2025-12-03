@@ -1,0 +1,9 @@
+# Vercel Ignore
+*.pyc
+__pycache__
+.git
+.env
+venv
+env
+*.md
+*.db
