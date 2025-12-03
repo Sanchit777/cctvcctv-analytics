@@ -1,5 +1,5 @@
 {
-    "installCommand": "ls -la && if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; else pip install -r requirements.txt; fi && find . -name 'tests' -type d -exec rm -rf {} + && find . -name '__pycache__' -type d -exec rm -rf {} +",
+    "installCommand": "pip install -r backend/requirements_custom.txt && find . -name 'tests' -type d -exec rm -rf {} + && find . -name '__pycache__' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
     "rewrites": [
         {
             "source": "/api/(.*)",
