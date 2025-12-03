@@ -3,7 +3,23 @@ import numpy as np
 import os
 
 # Paths to model files
-WEIGHTS_DIR = os.path.join(os.path.dirname(__file__), "weights")
+from .download_models import download_all_models
+
+# Paths to model files
+def get_weights_dir():
+    # Check for local weights first (development)
+    local_weights = os.path.join(os.path.dirname(__file__), "weights")
+    if os.path.exists(local_weights) and any(os.scandir(local_weights)):
+        return local_weights
+    
+    # Fallback to /tmp for serverless (production)
+    tmp_weights = "/tmp/weights"
+    if not os.path.exists(tmp_weights) or not any(os.scandir(tmp_weights)):
+        print("Downloading models to /tmp...")
+        download_all_models(tmp_weights)
+    return tmp_weights
+
+WEIGHTS_DIR = get_weights_dir()
 
 FACE_PROTO = os.path.join(WEIGHTS_DIR, "face_deploy.prototxt")
 FACE_MODEL = os.path.join(WEIGHTS_DIR, "face_net.caffemodel")

@@ -23,16 +23,17 @@ def download_file(url, filepath):
     else:
         print(f"Failed to download {url}")
 
-def main():
-    if not os.path.exists(WEIGHTS_DIR):
-        os.makedirs(WEIGHTS_DIR)
+def download_all_models(target_dir):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
     
     for filename, url in MODELS.items():
-        filepath = os.path.join(WEIGHTS_DIR, filename)
+        filepath = os.path.join(target_dir, filename)
         if not os.path.exists(filepath):
             download_file(url, filepath)
         else:
             print(f"{filename} already exists.")
 
 if __name__ == "__main__":
-    main()
+    WEIGHTS_DIR = os.path.join(os.path.dirname(__file__), "weights")
+    download_all_models(WEIGHTS_DIR)
