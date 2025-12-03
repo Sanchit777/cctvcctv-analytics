@@ -1,5 +1,5 @@
 {
-    "installCommand": "pip install -r backend/requirements_custom.txt && find . -name 'tests' -type d -exec rm -rf {} + && find . -name '__pycache__' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
+    "installCommand": "pip install -r requirements_custom.txt && find . -name 'tests' -type d -exec rm -rf {} + && find . -name '__pycache__' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
     "rewrites": [
         {
             "source": "/api/(.*)",
