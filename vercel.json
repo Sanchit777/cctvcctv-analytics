@@ -1,5 +1,5 @@
 {
-    "installCommand": "pip install -r requirements_custom.txt && find . -name 'tests' -type d -exec rm -rf {} + && find . -name '__pycache__' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
+    "installCommand": "echo 'Current Directory:' && pwd && echo 'Directory Contents:' && ls -la && if [ -f requirements.txt ]; then echo 'Found requirements.txt in root'; pip install -r requirements.txt; elif [ -f backend/requirements.txt ]; then echo 'Found backend/requirements.txt'; pip install -r backend/requirements.txt; else echo 'Requirements file NOT found. Debugging...'; ls -R; exit 1; fi && find . -name 'tests' -type d -exec rm -rf {} + && find . -name '__pycache__' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
     "rewrites": [
         {
             "source": "/api/(.*)",
