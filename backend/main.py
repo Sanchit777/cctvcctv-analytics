@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from database import get_db_conn, init_db
 import uvicorn
 import os
 import datetime
 from pydantic import BaseModel
 from camera import VideoCamera
-from database import get_db, init_db, Detection
+from database import get_db_conn, init_db
 
 # Initialize DB
 init_db()
@@ -62,12 +62,15 @@ def get_stats():
     }
 
 @app.get("/history")
-def get_history(db: Session = Depends(get_db), limit: int = 100):
-    detections = db.query(Detection).order_by(Detection.timestamp.desc()).limit(limit).all()
-    return detections
+def get_history(limit: int = 100):
+    with get_db_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM detections ORDER BY timestamp DESC LIMIT ?", (limit,))
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
 
 @app.get("/history/daily_stats")
-def get_daily_stats(date: str = None, db: Session = Depends(get_db)):
+def get_daily_stats(date: str = None):
     if date:
         try:
             query_date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
@@ -79,19 +82,21 @@ def get_daily_stats(date: str = None, db: Session = Depends(get_db)):
     start_of_day = datetime.datetime(query_date.year, query_date.month, query_date.day)
     end_of_day = start_of_day + datetime.timedelta(days=1)
     
-    # Query detections for the specific date
-    todays_detections = db.query(Detection).filter(
-        Detection.timestamp >= start_of_day,
-        Detection.timestamp < end_of_day
-    ).all()
+    with get_db_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM detections WHERE timestamp >= ? AND timestamp < ?",
+            (start_of_day, end_of_day)
+        )
+        todays_detections = cursor.fetchall()
     
     total_count = len(todays_detections)
     age_counts = {}
     gender_counts = {"Male": 0, "Female": 0}
     
     for d in todays_detections:
-        age_counts[d.age] = age_counts.get(d.age, 0) + 1
-        gender_counts[d.gender] = gender_counts.get(d.gender, 0) + 1
+        age_counts[d['age']] = age_counts.get(d['age'], 0) + 1
+        gender_counts[d['gender']] = gender_counts.get(d['gender'], 0) + 1
         
     return {
         "date": query_date,

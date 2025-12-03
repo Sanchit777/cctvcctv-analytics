@@ -1,31 +1,36 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import sqlite3
 import datetime
+from contextlib import contextmanager
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./cctv_analytics.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
-
-class Detection(Base):
-    __tablename__ = "detections"
-
-    id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
-    gender = Column(String)
-    age = Column(String)
+DB_NAME = "cctv_analytics.db"
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS detections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TIMESTAMP,
+            gender TEXT,
+            age TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-def get_db():
-    db = SessionLocal()
+@contextmanager
+def get_db_conn():
+    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
     try:
-        yield db
+        yield conn
     finally:
-        db.close()
+        conn.close()
+
+# Helper to simulate Pydantic model/SQLAlchemy object
+class Detection:
+    def __init__(self, id, timestamp, gender, age):
+        self.id = id
+        self.timestamp = timestamp
+        self.gender = gender
+        self.age = age
