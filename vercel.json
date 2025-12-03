@@ -1,5 +1,5 @@
 {
-    "installCommand": "ls -la && pip install -r reqs.txt && find . -name 'tests' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
+    "installCommand": "pip install -r reqs.txt || pip install -r backend/reqs.txt && find . -name 'tests' -type d -exec rm -rf {} + && rm -rf $(pip cache dir)",
     "rewrites": [
         {
             "source": "/api/(.*)",
