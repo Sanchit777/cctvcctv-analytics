@@ -2,8 +2,9 @@ import cv2
 import numpy as np
 import os
 import time
+import datetime
 from detector import Detector
-from database import SessionLocal, Detection
+from database import get_db_conn, Detection
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -88,12 +89,11 @@ class VideoCamera:
 
         self.detector = Detector()
         self.current_stats = []
-        self.db = SessionLocal()
         self.cooldown_manager = CooldownManager(cooldown_seconds=10)
 
     def __del__(self):
-        self.video.release()
-        self.db.close()
+        if self.video:
+            self.video.release()
 
     def get_frame(self):
         if self.video is None or not self.video.isOpened():
@@ -127,19 +127,22 @@ class VideoCamera:
     def save_to_db(self, results):
         try:
             saved_count = 0
-            for res in results:
-                # Pass box to should_save
-                if self.cooldown_manager.should_save(res['gender'], res['age'], res['box']):
-                    detection = Detection(gender=res['gender'], age=res['age'])
-                    self.db.add(detection)
-                    saved_count += 1
-            
-            if saved_count > 0:
-                self.db.commit()
-                print(f"Saved {saved_count} new detections to DB.")
+            with get_db_conn() as conn:
+                cursor = conn.cursor()
+                for res in results:
+                    # Pass box to should_save
+                    if self.cooldown_manager.should_save(res['gender'], res['age'], res['box']):
+                        cursor.execute(
+                            "INSERT INTO detections (timestamp, gender, age) VALUES (?, ?, ?)",
+                            (datetime.datetime.utcnow(), res['gender'], res['age'])
+                        )
+                        saved_count += 1
+                
+                if saved_count > 0:
+                    conn.commit()
+                    print(f"Saved {saved_count} new detections to DB.")
         except Exception as e:
             print(f"Error saving to DB: {e}")
-            self.db.rollback()
 
     def get_stats(self):
         return self.current_stats
