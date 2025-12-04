@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 import os
 import time
 from detector import Detector
@@ -68,11 +69,23 @@ class CooldownManager:
 class VideoCamera:
     def __init__(self):
         self.rtsp_url = os.getenv("RTSP_URL")
-        # Use RTSP URL if available, otherwise default to 0 (webcam)
-        self.source = self.rtsp_url if self.rtsp_url else 0
+        # Use RTSP URL if available, otherwise default to None (no source)
+        self.source = self.rtsp_url if self.rtsp_url else None
         print(f"Video Source: {self.source}")
         
-        self.video = cv2.VideoCapture(self.source)
+        self.video = None
+        if self.source is not None:
+            try:
+                self.video = cv2.VideoCapture(self.source)
+                if not self.video.isOpened():
+                    print("Could not open video source.")
+                    self.video = None
+            except Exception as e:
+                print(f"Error opening video source: {e}")
+                self.video = None
+        else:
+            print("No video source provided. Camera will return dummy frames.")
+
         self.detector = Detector()
         self.current_stats = []
         self.db = SessionLocal()
@@ -83,11 +96,19 @@ class VideoCamera:
         self.db.close()
 
     def get_frame(self):
+        if self.video is None or not self.video.isOpened():
+            # Return a black dummy frame
+            dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+            cv2.putText(dummy, "No Video Source", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            ret, jpeg = cv2.imencode('.jpg', dummy)
+            return jpeg.tobytes(), []
+
         success, image = self.video.read()
         if not success:
             # Try to reconnect if stream is lost
             self.video.release()
-            self.video = cv2.VideoCapture(self.source)
+            if self.source is not None:
+                self.video = cv2.VideoCapture(self.source)
             return None, []
         
         # Perform detection

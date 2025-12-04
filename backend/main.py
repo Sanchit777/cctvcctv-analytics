@@ -7,7 +7,7 @@ import os
 import datetime
 from pydantic import BaseModel
 from camera import VideoCamera
-from database import get_db_conn, init_db
+
 
 # Initialize DB
 init_db()
