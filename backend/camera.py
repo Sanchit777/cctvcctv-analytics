@@ -165,13 +165,15 @@ class VideoCamera:
                     cv2.rectangle(processed_frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
                     cv2.putText(processed_frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
 
-            # Encode frame
-            ret, jpeg = cv2.imencode('.jpg', processed_frame)
-            self.last_frame = jpeg.tobytes()
-            return self.last_frame
+            # Encode frame (Optional: we might not need this if we only send JSON)
+            # ret, jpeg = cv2.imencode('.jpg', processed_frame)
+            # self.last_frame = jpeg.tobytes()
+            
+            # Return the results (JSON data) instead of the image
+            return self.current_stats
         except Exception as e:
             print(f"Error processing external frame: {e}")
-            return None
+            return []
 
     def save_to_db(self, results):
         try:

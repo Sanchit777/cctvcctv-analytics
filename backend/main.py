@@ -43,12 +43,9 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_bytes()
-            processed_frame = camera.process_external_frame(data)
-            if processed_frame:
-                # Send back the processed frame (optional, for feedback loop)
-                # For now, we just update the server state. 
-                # If we want the client to see the bounding boxes, we could send it back.
-                await websocket.send_bytes(processed_frame)
+            results = camera.process_external_frame(data)
+            # Send back the results as JSON
+            await websocket.send_json(results)
     except WebSocketDisconnect:
         print("Client disconnected")
     except Exception as e:
