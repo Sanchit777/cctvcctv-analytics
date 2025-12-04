@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add local packages directory to path
+sys.path.append(os.path.join(os.path.dirname(__file__), "packages"))
+
 from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
