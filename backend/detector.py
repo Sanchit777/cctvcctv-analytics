@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 # Paths to model files
-from .download_models import download_all_models
+from download_models import download_all_models
 
 # Paths to model files
 def get_weights_dir():
