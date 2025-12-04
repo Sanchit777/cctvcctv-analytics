@@ -71,7 +71,10 @@ class VideoCamera:
     def __init__(self):
         self.rtsp_url = os.getenv("RTSP_URL")
         # Use RTSP URL if available, otherwise default to None (no source)
-        self.source = self.rtsp_url if self.rtsp_url else None
+        if self.rtsp_url and self.rtsp_url.isdigit():
+            self.source = int(self.rtsp_url)
+        else:
+            self.source = self.rtsp_url if self.rtsp_url else None
         print(f"Video Source: {self.source}")
         
         self.video = None
