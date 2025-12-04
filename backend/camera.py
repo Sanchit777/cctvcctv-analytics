@@ -140,15 +140,31 @@ class VideoCamera:
             if frame is None:
                 return None
 
-            # Perform detection
-            processed_frame, results = self.detector.detect_and_predict(frame)
-            self.current_stats = results
+            # Initialize frame counter if not exists
+            if not hasattr(self, 'frame_count'):
+                self.frame_count = 0
             
-            # Save to DB with cooldown check
-            if results:
-                self.save_to_db(results)
-                self.cooldown_manager.cleanup()
+            self.frame_count += 1
             
+            # Run detection only every 5 frames (to speed up processing)
+            if self.frame_count % 5 == 0 or not self.current_stats:
+                processed_frame, results = self.detector.detect_and_predict(frame)
+                self.current_stats = results
+                
+                # Save to DB with cooldown check
+                if results:
+                    self.save_to_db(results)
+                    self.cooldown_manager.cleanup()
+            else:
+                # Just draw the last known boxes on the current frame
+                processed_frame = frame.copy()
+                for res in self.current_stats:
+                    (startX, startY, endX, endY) = res['box']
+                    label = f"{res['gender']}, {res['age']}"
+                    y = startY - 10 if startY - 10 > 10 else startY + 10
+                    cv2.rectangle(processed_frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
+                    cv2.putText(processed_frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
+
             # Encode frame
             ret, jpeg = cv2.imencode('.jpg', processed_frame)
             self.last_frame = jpeg.tobytes()
