@@ -1,6 +1,6 @@
 
 
-from fastapi import FastAPI, Response, Depends, HTTPException
+from fastapi import FastAPI, Response, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from database import get_db_conn, init_db
@@ -36,6 +36,23 @@ def gen(camera):
         if frame:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+@app.websocket("/ws/stream")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+            processed_frame = camera.process_external_frame(data)
+            if processed_frame:
+                # Send back the processed frame (optional, for feedback loop)
+                # For now, we just update the server state. 
+                # If we want the client to see the bounding boxes, we could send it back.
+                await websocket.send_bytes(processed_frame)
+    except WebSocketDisconnect:
+        print("Client disconnected")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
 
 @app.get("/video_feed")
 def video_feed():

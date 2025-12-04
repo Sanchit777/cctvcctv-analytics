@@ -99,10 +99,14 @@ class VideoCamera:
             self.video.release()
 
     def get_frame(self):
+        # If we have an external source (browser), return the last processed frame
+        if self.source is None and hasattr(self, 'last_frame'):
+            return self.last_frame, self.current_stats
+
         if self.video is None or not self.video.isOpened():
             # Return a black dummy frame
             dummy = np.zeros((480, 640, 3), dtype=np.uint8)
-            cv2.putText(dummy, "No Video Source", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            cv2.putText(dummy, "Waiting for Camera...", (180, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             ret, jpeg = cv2.imencode('.jpg', dummy)
             return jpeg.tobytes(), []
 
@@ -126,6 +130,32 @@ class VideoCamera:
         # Encode frame
         ret, jpeg = cv2.imencode('.jpg', processed_frame)
         return jpeg.tobytes(), results
+
+    def process_external_frame(self, frame_bytes):
+        try:
+            # Decode frame
+            nparr = np.frombuffer(frame_bytes, np.uint8)
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if frame is None:
+                return None
+
+            # Perform detection
+            processed_frame, results = self.detector.detect_and_predict(frame)
+            self.current_stats = results
+            
+            # Save to DB with cooldown check
+            if results:
+                self.save_to_db(results)
+                self.cooldown_manager.cleanup()
+            
+            # Encode frame
+            ret, jpeg = cv2.imencode('.jpg', processed_frame)
+            self.last_frame = jpeg.tobytes()
+            return self.last_frame
+        except Exception as e:
+            print(f"Error processing external frame: {e}")
+            return None
 
     def save_to_db(self, results):
         try:
